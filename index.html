@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, interactive-widget=resizes-content">
+<title>Patient Status</title>
+<style>
+  :root{
+    --ink:#14181C;
+    --ink-2:#1D2329;
+    --paper:#EDEAE1;
+    --paper-2:#E2DED2;
+    --amber:#F2B705;
+    --amber-dim:#B08A0A;
+    --steel:#4A6572;
+    --alert:#C1442E;
+    --ok:#2E7D4F;
+    --line: rgba(20,24,28,0.16);
+    --paper-text:#1D2329;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ink);
+    background-image:
+      radial-gradient(circle at 10% 0%, rgba(242,183,5,0.06), transparent 40%),
+      repeating-linear-gradient(180deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 3px);
+    color:var(--paper);
+    font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .shell{
+    max-width:480px;
+    margin:0 auto;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    padding:18px 14px 40px;
+  }
+
+  .header{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    padding:6px 4px 16px;
+    border-bottom:1px solid rgba(237,234,225,0.15);
+    margin-bottom:18px;
+  }
+  .brand{
+    font-family:'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+    font-weight:700;
+    font-size:22px;
+    letter-spacing:0.5px;
+    text-transform:uppercase;
+    color:var(--paper);
+  }
+  .brand span{color:var(--amber);}
+  .badge-id{
+    font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+    font-size:11px;
+    color:var(--steel);
+    letter-spacing:0.5px;
+  }
+
+  .pad{
+    background:var(--paper);
+    color:var(--paper-text);
+    border-radius:12px;
+    padding:22px 18px 20px;
+    position:relative;
+    box-shadow:0 18px 40px rgba(0,0,0,0.35);
+  }
+  .pad::before{
+    content:"";
+    position:absolute;
+    top:0; left:0; right:0;
+    height:3px;
+    border-radius:12px 12px 0 0;
+    background:repeating-linear-gradient(90deg, var(--amber) 0 10px, transparent 10px 16px);
+    opacity:0.9;
+  }
+
+  .section-title{
+    font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:0.6px;
+    text-transform:uppercase;
+    color:var(--steel);
+    margin:0 0 8px;
+  }
+
+  .floor-tabs{
+    display:flex;
+    gap:6px;
+    overflow-x:auto;
+    padding-bottom:4px;
+    margin-bottom:16px;
+    -webkit-overflow-scrolling:touch;
+  }
+  .floor-tabs::-webkit-scrollbar{display:none;}
+  .floor-tab{
+    position:relative;
+    flex:0 0 auto;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    background:linear-gradient(180deg, #ffffff, #f1efe8);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:8px 12px;
+    font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+    font-size:12px;
+    font-weight:600;
+    color:var(--steel);
+    cursor:pointer;
+    white-space:nowrap;
+    box-shadow:0 2px 0 rgba(20,24,28,0.18), 0 3px 6px rgba(20,24,28,0.15), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+  .floor-tab:active{
+    transform:translateY(1px);
+    box-shadow:0 1px 0 rgba(20,24,28,0.18), 0 1px 3px rgba(20,24,28,0.15), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+  .floor-tab.active{
+    background:linear-gradient(180deg, #f7cd3f, var(--amber));
+    color:var(--ink);
+    border-color:var(--amber-dim);
+    box-shadow:0 2px 0 rgba(176,138,10,0.5), 0 3px 8px rgba(176,138,10,0.3), inset 0 1px 0 rgba(255,255,255,0.5);
+  }
+  .floor-tab.active:active{
+    box-shadow:0 1px 0 rgba(176,138,10,0.5), 0 1px 4px rgba(176,138,10,0.3), inset 0 1px 0 rgba(255,255,255,0.5);
+  }
+  .floor-tab .del{
+    color:var(--alert);
+    font-size:13px;
+    line-height:1;
+    padding-left:2px;
+  }
+  .floor-tab .dup{
+    color:var(--steel);
+    font-size:13px;
+    line-height:1;
+    padding-left:2px;
+  }
+  .floor-tab.active .del{color:#8f2e1b;}
+  .floor-tab.active .dup{color:rgba(20,24,28,0.55);}
+  .floor-tab-input{
+    background:transparent;
+    border:none;
+    outline:none;
+    font:inherit;
+    color:inherit;
+    padding:0;
+    margin:0;
+    min-width:14px;
+    max-width:150px;
+  }
+  .floor-tab-input::placeholder{
+    color:rgba(242,183,5,0.55);
+  }
+  .floor-tab.add{
+    color:var(--amber-dim);
+    border:1.5px dashed var(--amber-dim);
+    background:linear-gradient(180deg, rgba(242,183,5,0.14), rgba(242,183,5,0.05));
+    box-shadow:0 2px 0 rgba(176,138,10,0.3), 0 3px 6px rgba(176,138,10,0.18), inset 0 1px 0 rgba(255,255,255,0.4);
+  }
+  .floor-tab.add:active{
+    transform:translateY(1px);
+    box-shadow:0 1px 0 rgba(176,138,10,0.3), 0 1px 3px rgba(176,138,10,0.18), inset 0 1px 0 rgba(255,255,255,0.4);
+  }
+
+  .backup-row{
+    display:flex;
+    gap:8px;
+    margin-top:6px;
+  }
+  .backup-btn{
+    flex:1;
+    padding:10px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:linear-gradient(180deg, #ffffff, #f1efe8);
+    color:var(--steel);
+    font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+    font-weight:600;
+    font-size:12px;
+    cursor:pointer;
+    box-shadow:0 2px 0 rgba(20,24,28,0.18), 0 3px 6px rgba(20,24,28,0.15), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+  .backup-btn:active{
+    transform:translateY(1px);
+    box-shadow:0 1px 0 rgba(20,24,28,0.18), 0 1px 3px rgba(20,24,28,0.15), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+  .backup-note{
+    font-family:ui-monospace, monospace;
+    font-size:10px;
+    color:rgba(29,35,41,0.55);
+    margin-top:8px;
+    line-height:1.4;
+  }
+
+  .meta-row{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:8px;
+    margin-bottom:18px;
+  }
+  .meta-row input{
+    width:100%;
+    background:linear-gradient(180deg, #ffffff, #f1efe8);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:9px 8px;
+    font-size:13px;
+    font-family:inherit;
+    color:var(--paper-text);
+    text-align:center;
+    outline:none;
+    box-shadow:0 2px 0 rgba(20,24,28,0.18), 0 3px 6px rgba(20,24,28,0.15), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+  .meta-row input:active{
+    transform:translateY(1px);
+    box-shadow:0 1px 0 rgba(20,24,28,0.18), 0 1px 3px rgba(20,24,28,0.15), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+  .meta-row input:focus{
+    border-color:var(--ok);
+    box-shadow:0 2px 0 rgba(20,24,28,0.18), 0 3px 6px rgba(20,24,28,0.15), 0 0 0 3px rgba(46,125,79,0.22);
+  }
+
+  .stat-strip{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:8px;
+    margin-bottom:20px;
+  }
+  .stat-box{
+    background:linear-gradient(180deg, #ffffff, var(--paper-2));
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px 6px;
+    text-align:center;
+    box-shadow:0 3px 0 rgba(20,24,28,0.15), 0 5px 10px rgba(20,24,28,0.12), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+  .stat-box .num{
+    font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+    font-size:19px;
+    font-weight:700;
+    color:var(--amber-dim);
+    line-height:1.1;
+  }
+  .stat-box .lbl{
+    font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+    font-size:8.5px;
+    font-weight:700;
+    letter-spacing:0.4px;
+    color:#000;
+    text-transform:uppercase;
+    margin-top:2px;
+  }
+
+  .room-list{margin-bottom:12px;}
+  .room-row{
+    display:grid;
+    grid-template-columns:1fr 0.9fr 1fr auto;
+    gap:6px;
+    align-items:center;
+    margin-bottom:7px;
+  }
+  .room-row input[type=text]{
+    background:linear-gradient(180deg, #ffffff, #f1efe8);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:9px 8px;
+    font-size:13px;
+    font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+    color:var(--paper-text);
+    outline:none;
+    width:100%;
+    box-shadow:0 2px 0 rgba(20,24,28,0.18), 0 3px 6px rgba(20,24,28,0.15), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+  .room-row input[type=text]:active{
+    transform:translateY(1px);
+    box-shadow:0 1px 0 rgba(20,24,28,0.18), 0 1px 3px rgba(20,24,28,0.15), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+  .room-row input[type=text]:focus{
+    border-color:var(--ok);
+    box-shadow:0 2px 0 rgba(20,24,28,0.18), 0 3px 6px rgba(20,24,28,0.15), 0 0 0 3px rgba(46,125,79,0.22);
+  }
+  .room-row select{
+    background:linear-gradient(180deg, #ffffff, #f1efe8);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:9px 6px;
+    font-size:12.5px;
+    font-family:inherit;
+    color:var(--paper-text);
+    outline:none;
+    width:100%;
+    box-shadow:0 2px 0 rgba(20,24,28,0.18), 0 3px 6px rgba(20,24,28,0.15), inset 0 1px 0 rgba(255,255,255,0.9);
+    cursor:pointer;
+  }
+  .room-row select:active{
+    transform:translateY(1px);
+    box-shadow:0 1px 0 rgba(20,24,28,0.18), 0 1px 3px rgba(20,24,28,0.15), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+  .room-row select:focus{
+    border-color:var(--ok);
+    box-shadow:0 2px 0 rgba(20,24,28,0.18), 0 3px 6px rgba(20,24,28,0.15), 0 0 0 3px rgba(46,125,79,0.22);
+  }
+  .room-row select.vacant-status{
+    border-color:var(--alert);
+    background:linear-gradient(180deg, #fbeae6, #f5d8d1);
+    color:var(--alert);
+    font-weight:700;
+    box-shadow:0 2px 0 rgba(193,68,46,0.35), 0 3px 6px rgba(193,68,46,0.2), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+  .room-row select.vacant-status:focus{
+    border-color:var(--alert);
+    box-shadow:0 2px 0 rgba(193,68,46,0.35), 0 3px 6px rgba(193,68,46,0.2), 0 0 0 3px rgba(193,68,46,0.22);
+  }
+  .tag-wrap{
+    position:relative;
+    width:100%;
+  }
+  .tag-input{
+    background:linear-gradient(180deg, #ffffff, #f1efe8);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:9px 22px 9px 6px;
+    font-size:11.5px;
+    font-family:inherit;
+    color:var(--paper-text);
+    outline:none;
+    width:100%;
+    cursor:pointer;
+    box-shadow:0 2px 0 rgba(20,24,28,0.18), 0 3px 6px rgba(20,24,28,0.15), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+  .tag-input:active{
+    transform:translateY(1px);
+    box-shadow:0 1px 0 rgba(20,24,28,0.18), 0 1px 3px rgba(20,24,28,0.15), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+  .tag-input:focus{
+    border-color:var(--ok);
+    box-shadow:0 2px 0 rgba(20,24,28,0.18), 0 3px 6px rgba(20,24,28,0.15), 0 0 0 3px rgba(46,125,79,0.22);
+  }
+  .tag-input.tagged{
+    border-color:var(--ok);
+    background:linear-gradient(180deg, #eafaf0, #d7f2e2);
+    color:var(--ok);
+    font-weight:700;
+    box-shadow:0 2px 0 rgba(46,125,79,0.35), 0 3px 6px rgba(46,125,79,0.2), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+  .tag-clear{
+    display:none;
+    position:absolute;
+    right:4px;
+    top:50%;
+    transform:translateY(-50%);
+    width:16px;
+    height:16px;
+    line-height:16px;
+    text-align:center;
+    border-radius:50%;
+    background:var(--alert);
+    color:#fff;
+    font-size:11px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .tag-wrap.has-tag .tag-clear{display:block;}
+  .remove-room{
+    width:34px;
+    height:34px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:linear-gradient(180deg, #ffffff, #f1efe8);
+    color:var(--alert);
+    font-size:16px;
+    line-height:1;
+    cursor:pointer;
+    box-shadow:0 2px 0 rgba(20,24,28,0.18), 0 3px 6px rgba(20,24,28,0.15), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+  .remove-room:active{
+    transform:translateY(1px);
+    box-shadow:0 1px 0 rgba(20,24,28,0.18), 0 1px 3px rgba(20,24,28,0.15), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+
+  .add-room-btn{
+    width:100%;
+    padding:12px;
+    margin-top:4px;
+    margin-bottom:20px;
+    border:1.5px solid var(--steel);
+    border-radius:9px;
+    background:linear-gradient(180deg, #ffffff, #eef0f1);
+    color:var(--steel);
+    font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+    font-weight:700;
+    font-size:13px;
+    cursor:pointer;
+    box-shadow:0 4px 0 rgba(74,101,114,0.4), 0 6px 12px rgba(74,101,114,0.25), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+  .add-room-btn:active{
+    transform:translateY(2px);
+    box-shadow:0 2px 0 rgba(74,101,114,0.4), 0 3px 6px rgba(74,101,114,0.25), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+
+  .divider{
+    border:none;
+    border-top:1px dashed var(--line);
+    margin:0 0 18px;
+  }
+
+  /* Report output */
+  .report-wrap{
+    border-radius:8px;
+    overflow:hidden;
+    box-shadow:0 10px 26px rgba(0,0,0,0.25);
+  }
+  .report-meta{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    background:var(--ink);
+    padding:10px 14px;
+  }
+  .report-meta .ts{
+    font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+    font-size:10.5px;
+    color:rgba(237,234,225,0.55);
+  }
+  .copy-btn{
+    background:none;
+    border:1px solid rgba(237,234,225,0.3);
+    border-radius:5px;
+    padding:5px 10px;
+    font-family:ui-monospace, monospace;
+    font-size:10.5px;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:0.4px;
+    color:var(--paper);
+    cursor:pointer;
+  }
+  .copy-btn.copied{color:#6fd192; border-color:#6fd192;}
+  .report-box{
+    background:#0e1115;
+    padding:16px 14px;
+    font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+    font-size:12.5px;
+    line-height:1.55;
+    color:#EDEAE1;
+    white-space:pre;
+    overflow-x:auto;
+  }
+  .report-box .hl{color:var(--amber);}
+  .report-box .vac{color:rgba(237,234,225,0.4);}
+  .report-box .vvip-tag{color:#ff8a65;}
+
+  .wa-row{margin-top:12px;}
+  .wa-row input{
+    width:100%;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:9px 10px;
+    font-size:13px;
+    font-family:inherit;
+    color:var(--paper-text);
+    outline:none;
+  }
+  .wa-btn{
+    width:100%;
+    margin-top:9px;
+    padding:18px;
+    border-radius:9px;
+    border:none;
+    background:#25D366;
+    color:#08301a;
+    font-family:'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+    font-weight:900;
+    font-size:17px;
+    letter-spacing:0.5px;
+    text-transform:uppercase;
+    cursor:pointer;
+    box-shadow:0 6px 16px rgba(37,211,102,0.4);
+  }
+  .wa-btn:active{transform:scale(0.98); box-shadow:0 3px 8px rgba(37,211,102,0.4);}
+
+  .action-row{
+    display:flex;
+    gap:8px;
+    margin-top:9px;
+  }
+  .excel-btn{
+    flex:1;
+    padding:12px;
+    border-radius:9px;
+    border:none;
+    background:linear-gradient(180deg, #229155, #1D6F42);
+    color:#fff;
+    font-family:'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+    font-weight:700;
+    font-size:13px;
+    letter-spacing:0.3px;
+    text-transform:uppercase;
+    cursor:pointer;
+    box-shadow:0 4px 0 rgba(11,60,34,0.6), 0 6px 12px rgba(29,111,66,0.35);
+  }
+  .excel-btn:active{transform:translateY(2px); box-shadow:0 2px 0 rgba(11,60,34,0.6), 0 3px 6px rgba(29,111,66,0.35);}
+  .copy-btn-lg{
+    flex:1;
+    padding:12px;
+    border-radius:9px;
+    border:1.5px solid var(--steel);
+    background:linear-gradient(180deg, #ffffff, #f1efe8);
+    color:var(--steel);
+    font-family:'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+    font-weight:700;
+    font-size:13px;
+    letter-spacing:0.3px;
+    text-transform:uppercase;
+    cursor:pointer;
+    box-shadow:0 4px 0 rgba(74,101,114,0.35), 0 6px 12px rgba(74,101,114,0.2), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+  .copy-btn-lg.copied{color:#1a8a4f; border-color:#1a8a4f;}
+  .copy-btn-lg:active{transform:translateY(2px); box-shadow:0 2px 0 rgba(74,101,114,0.35), 0 3px 6px rgba(74,101,114,0.2), inset 0 1px 0 rgba(255,255,255,0.9);}
+
+  .footnote{
+    text-align:center;
+    font-family:ui-monospace, monospace;
+    font-size:10.5px;
+    color:rgba(237,234,225,0.35);
+    margin-top:22px;
+    letter-spacing:0.3px;
+  }
+
+  .undo-toast{
+    position:fixed;
+    left:50%;
+    bottom:18px;
+    transform:translateX(-50%) translateY(120%);
+    width:calc(100% - 28px);
+    max-width:452px;
+    background:var(--ink-2);
+    border:1px solid rgba(237,234,225,0.15);
+    border-radius:10px;
+    padding:12px 14px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    box-shadow:0 14px 34px rgba(0,0,0,0.45);
+    opacity:0;
+    transition:transform 0.22s ease, opacity 0.22s ease;
+    z-index:50;
+    overflow:hidden;
+  }
+  .undo-toast.show{
+    transform:translateX(-50%) translateY(0);
+    opacity:1;
+  }
+  .undo-toast .msg{
+    font-size:12.5px;
+    color:var(--paper);
+    flex:1;
+  }
+  .undo-btn{
+    flex:0 0 auto;
+    background:none;
+    border:1px solid var(--amber);
+    border-radius:6px;
+    padding:7px 12px;
+    font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+    font-weight:700;
+    font-size:12px;
+    letter-spacing:0.3px;
+    text-transform:uppercase;
+    color:var(--amber);
+    cursor:pointer;
+  }
+  .undo-toast .bar{
+    position:absolute;
+    left:0; bottom:0;
+    height:2px;
+    background:var(--amber);
+    width:100%;
+    transform-origin:left;
+  }
+  .undo-toast.show .bar{
+    animation:undo-countdown 9s linear forwards;
+  }
+  @keyframes undo-countdown{
+    from{transform:scaleX(1);}
+    to{transform:scaleX(0);}
+  }
+
+  /* Readability boost: bolder, slightly larger text everywhere */
+  body, input, select, button, textarea{
+    font-weight:600;
+  }
+  .brand{font-size:24px;}
+  .badge-id{font-size:12px; font-weight:700;}
+  .section-title{font-size:12px; font-weight:700;}
+  .floor-tab{font-size:13px; font-weight:700;}
+  .meta-row input{font-size:14px; font-weight:700;}
+  .stat-box .num{font-size:21px; font-weight:800;}
+  .stat-box .lbl{font-size:9.5px; font-weight:800;}
+  .room-row input[type=text]{font-size:14px; font-weight:700;}
+  .room-row select{font-size:13.5px; font-weight:700;}
+  .tag-input{font-size:12.5px; font-weight:700;}
+  .add-room-btn{font-size:14px;}
+  .backup-btn{font-size:13px;}
+  .backup-note{font-size:11px; font-weight:600;}
+  .report-meta .ts{font-size:11px; font-weight:700;}
+  .report-box{font-size:13.5px; font-weight:600;}
+  .wa-row input{font-size:14px; font-weight:600;}
+  .wa-btn{font-size:18px;}
+  .excel-btn, .copy-btn-lg{font-size:14px;}
+  .footnote{font-size:11px; font-weight:700;}
+
+  /* Keyboard-open compact mode: shrink/hide non-essential chrome so the
+     room list stays visible above the on-screen keyboard while typing. */
+  body.keyboard-open .header{
+    padding:2px 4px 6px;
+    margin-bottom:6px;
+  }
+  body.keyboard-open .brand{font-size:15px;}
+  body.keyboard-open .badge-id{display:none;}
+  body.keyboard-open .shell{padding:8px 14px 10px;}
+  body.keyboard-open .pad{padding:10px 14px 10px;}
+  body.keyboard-open .section-title{margin:0 0 4px; font-size:10px;}
+  body.keyboard-open .floor-tabs{margin-bottom:8px;}
+  body.keyboard-open .meta-row:not(:focus-within),
+  body.keyboard-open .stat-strip{display:none;}
+  body.keyboard-open .footnote{display:none;}
+  body.keyboard-open .room-row{margin-bottom:5px;}
+  body.keyboard-open .add-room-btn{margin-bottom:8px;}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="header">
+    <div class="brand">PATIENT <span>STATUS</span></div>
+    <div class="badge-id">WARD BOARD</div>
+  </div>
+
+  <div class="pad">
+
+    <div class="section-title">Floors (tap to switch)</div>
+    <div class="floor-tabs" id="floor-tabs"></div>
+
+    <div class="section-title">Facility / Zone / Floor</div>
+    <div class="meta-row">
+      <input type="text" id="meta-facility" placeholder="BMC" maxlength="12">
+      <input type="text" id="meta-zone" placeholder="ZONE D" maxlength="14">
+      <input type="text" id="meta-floor" placeholder="4TH FLOOR" maxlength="14">
+    </div>
+
+    <div class="stat-strip" id="stat-strip">
+      <div class="stat-box"><div class="num" id="stat-total">0</div><div class="lbl">Patients</div></div>
+      <div class="stat-box"><div class="num" id="stat-male">0</div><div class="lbl">Male</div></div>
+      <div class="stat-box"><div class="num" id="stat-female">0</div><div class="lbl">Female</div></div>
+      <div class="stat-box"><div class="num" id="stat-vacant">0</div><div class="lbl">Vacant</div></div>
+    </div>
+
+    <div class="section-title">Rooms</div>
+    <div class="room-list" id="room-list"></div>
+    <button class="add-room-btn" id="add-room-btn">+ Add room</button>
+
+    <hr class="divider">
+
+    <div class="section-title">Report</div>
+    <div class="report-wrap">
+      <div class="report-meta">
+        <span class="ts" id="report-ts"></span>
+        <button class="copy-btn" id="copy-btn">Copy</button>
+      </div>
+      <div class="report-box" id="report-box"></div>
+    </div>
+
+    <div class="wa-row">
+      <input type="text" id="wa-number" placeholder="WhatsApp number, optional (e.g. +971501234567)">
+      <button class="wa-btn" id="wa-send">💬 Send via WhatsApp</button>
+    </div>
+
+    <div class="action-row">
+      <button class="copy-btn-lg" id="copy-btn-lg" type="button">📋 Copy report</button>
+      <button class="excel-btn" id="excel-btn" type="button">📊 Export Excel</button>
+    </div>
+
+    <hr class="divider">
+
+    <div class="section-title">Backup (all floors)</div>
+    <div class="backup-row">
+      <button class="backup-btn" id="export-btn" type="button">⬇ Export backup</button>
+      <button class="backup-btn" id="import-btn" type="button">⬆ Import backup</button>
+      <input type="file" id="import-file" accept="application/json" hidden>
+    </div>
+    <div class="backup-note">This data is saved only inside <b>this phone's</b> browser storage — nothing is uploaded, and nothing syncs with anyone else. If you send this file to a friend and they open it on their own phone, they get their own separate, private copy to fill in with their own floor's data — your data and theirs never mix or touch each other. Clearing browser data / reinstalling would erase your local copy, so export a backup occasionally and keep it somewhere safe (e.g. your Files app or email it to yourself).</div>
+
+  </div>
+
+  <div class="footnote">100% OFFLINE · PRIVATE TO THIS DEVICE ONLY</div>
+</div>
+
+<div class="undo-toast" id="undo-toast">
+  <span class="msg" id="undo-msg"></span>
+  <button class="undo-btn" id="undo-btn" type="button">Undo</button>
+  <div class="bar" id="undo-bar"></div>
+</div>
+
+<script>
+const STATUS_LABELS = { vacant: 'Vac.', male: 'M', female: 'F' };
+const ROOM_TAGS = ['', 'VIP', 'VVIP', 'Out On Pass', 'Mission', 'Vacant', 'Transfer'];
+
+(function setupTagSuggestions(){
+  const datalist = document.createElement('datalist');
+  datalist.id = 'room-tag-options';
+  ROOM_TAGS.filter(Boolean).forEach(val => {
+    const opt = document.createElement('option');
+    opt.value = val;
+    datalist.appendChild(opt);
+  });
+  document.body.appendChild(datalist);
+})();
+const BOARDS_KEY = 'patient-status:boards';
+const ACTIVE_KEY = 'patient-status:active-id';
+
+function makeDefaultBoard(id){
+  return {
+    id: id,
+    facility: 'BMC',
+    zone: 'ZONE D',
+    floor: '4TH FLOOR',
+    rooms: [
+      { label: '401', status: 'female', tag: '' },
+      { label: '402', status: 'female', tag: '' },
+      { label: '403', status: 'male', tag: '' },
+      { label: '404', status: 'vacant', tag: '' },
+      { label: '405', status: 'female', tag: '' },
+      { label: '406', status: 'female', tag: 'VVIP' },
+      { label: '407', status: 'male', tag: '' },
+      { label: '408', status: 'vacant', tag: '' },
+      { label: '409', status: 'vacant', tag: '' },
+      { label: 'ISO', status: 'vacant', tag: '' }
+    ]
+  };
+}
+
+function makeBlankBoard(id){
+  return { id: id, facility: '', zone: '', floor: '', rooms: [] };
+}
+
+function genId(){
+  return 'b' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+let boards = [];
+let activeId = null;
+let state = null; // reference to the active board object inside `boards`
+let saveTimer = null;
+
+function persistNow(){
+  try {
+    localStorage.setItem(BOARDS_KEY, JSON.stringify(boards));
+    localStorage.setItem(ACTIVE_KEY, activeId);
+  } catch (e) {
+    console.error('Save failed', e);
+  }
+}
+
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(persistNow, 300);
+}
+
+// --- Undo toast (9 second window to restore something deleted by mistake) ---
+let undoHideTimer = null;
+let undoRestoreFn = null;
+
+function showUndoToast(message, restoreFn){
+  const toast = document.getElementById('undo-toast');
+  const bar = document.getElementById('undo-bar');
+  document.getElementById('undo-msg').textContent = message;
+  undoRestoreFn = restoreFn;
+
+  clearTimeout(undoHideTimer);
+  toast.classList.remove('show');
+  // restart the countdown bar animation
+  bar.style.animation = 'none';
+  void bar.offsetWidth;
+  bar.style.animation = '';
+
+  requestAnimationFrame(() => toast.classList.add('show'));
+  undoHideTimer = setTimeout(hideUndoToast, 9000);
+}
+
+function hideUndoToast(){
+  clearTimeout(undoHideTimer);
+  document.getElementById('undo-toast').classList.remove('show');
+  undoRestoreFn = null;
+}
+
+document.getElementById('undo-btn').addEventListener('click', () => {
+  if (undoRestoreFn) undoRestoreFn();
+  hideUndoToast();
+});
+
+function loadState(){
+  try {
+    const raw = localStorage.getItem(BOARDS_KEY);
+    if (raw){
+      boards = JSON.parse(raw) || [];
+      boards.forEach(b => {
+        // migrate old boolean 'vvip' flag to the new 'tag' field
+        b.rooms = (b.rooms || []).map(r => {
+          if (typeof r.tag === 'undefined'){
+            r.tag = r.vvip ? 'VVIP' : '';
+            delete r.vvip;
+          }
+          return r;
+        });
+      });
+    }
+  } catch (e) {
+    boards = [];
+  }
+
+  if (!boards.length){
+    boards = [makeDefaultBoard(genId())];
+  }
+
+  activeId = localStorage.getItem(ACTIVE_KEY);
+  if (!activeId || !boards.some(b => b.id === activeId)){
+    activeId = boards[0].id;
+  }
+  state = boards.find(b => b.id === activeId);
+}
+
+function switchBoard(id){
+  const board = boards.find(b => b.id === id);
+  if (!board) return;
+  activeId = id;
+  state = board;
+  persistNow();
+  renderFloorTabs();
+  renderMeta();
+  renderRooms();
+  renderStats();
+  renderReport();
+}
+
+function addBoard(){
+  const board = makeBlankBoard(genId());
+  boards.push(board);
+  activeId = board.id;
+  state = board;
+  persistNow();
+  renderFloorTabs();
+  renderMeta();
+  renderRooms();
+  renderStats();
+  renderReport();
+  const tabInput = document.querySelector('.floor-tab.active .floor-tab-input');
+  if (tabInput) tabInput.focus();
+}
+
+function deleteBoard(id){
+  if (boards.length <= 1) return;
+  const idx = boards.findIndex(b => b.id === id);
+  if (idx === -1) return;
+  const removedBoard = boards[idx];
+  const previousActiveId = activeId;
+  const wasActive = id === activeId;
+  boards.splice(idx, 1);
+  if (wasActive){
+    activeId = boards[0].id;
+    state = boards[0];
+  }
+  persistNow();
+  renderFloorTabs();
+  renderMeta();
+  renderRooms();
+  renderStats();
+  renderReport();
+
+  const label = (removedBoard.floor || '').trim() || 'Untitled';
+  showUndoToast('Floor "' + label + '" deleted', () => {
+    const insertAt = Math.min(idx, boards.length);
+    boards.splice(insertAt, 0, removedBoard);
+    activeId = previousActiveId;
+    state = boards.find(b => b.id === activeId) || boards[insertAt];
+    persistNow();
+    renderFloorTabs();
+    renderMeta();
+    renderRooms();
+    renderStats();
+    renderReport();
+  });
+}
+
+function duplicateBoard(id){
+  const board = boards.find(b => b.id === id);
+  if (!board) return;
+  const copy = JSON.parse(JSON.stringify(board));
+  copy.id = genId();
+  copy.floor = board.floor ? board.floor + ' COPY' : 'NEW FLOOR';
+  const idx = boards.findIndex(b => b.id === id);
+  boards.splice(idx + 1, 0, copy);
+  activeId = copy.id;
+  state = copy;
+  persistNow();
+  renderFloorTabs();
+  renderMeta();
+  renderRooms();
+  renderStats();
+  renderReport();
+  const tabInput = document.querySelector('.floor-tab.active .floor-tab-input');
+  if (tabInput){ tabInput.focus(); tabInput.select(); }
+}
+
+function renderFloorTabs(){
+  const wrap = document.getElementById('floor-tabs');
+  wrap.innerHTML = '';
+  boards.forEach(b => {
+    const isActive = b.id === activeId;
+    const tab = el('div', { class: 'floor-tab' + (isActive ? ' active' : '') }, []);
+
+    if (isActive){
+      // Editable directly on the tab for the currently-selected floor
+      const labelInput = el('input', {
+        type: 'text',
+        class: 'floor-tab-input',
+        placeholder: 'Untitled',
+        value: b.floor || '',
+        autocomplete: 'off'
+      });
+      const resize = () => { labelInput.style.width = Math.max(2, labelInput.value.length) + 1 + 'ch'; };
+      resize();
+      labelInput.addEventListener('input', () => {
+        b.floor = labelInput.value;
+        resize();
+        renderMeta();
+        renderReport();
+        scheduleSave();
+      });
+      // Stop taps/typing on the input from re-triggering switchBoard / rebuilding tabs mid-edit
+      ['click', 'mousedown', 'touchstart'].forEach(evt => {
+        labelInput.addEventListener(evt, (e) => e.stopPropagation());
+      });
+      tab.appendChild(labelInput);
+    } else {
+      const label = (b.floor || '').trim() || 'Untitled';
+      const labelSpan = document.createElement('span');
+      labelSpan.textContent = label;
+      tab.appendChild(labelSpan);
+    }
+
+    tab.addEventListener('click', (e) => {
+      if (e.target.classList.contains('del') || e.target.classList.contains('dup')) return;
+      if (e.target.classList.contains('floor-tab-input')) return;
+      switchBoard(b.id);
+    });
+    const dup = document.createElement('span');
+    dup.className = 'dup';
+    dup.title = 'Duplicate this floor';
+    dup.textContent = '⧉';
+    dup.addEventListener('click', (e) => {
+      e.stopPropagation();
+      duplicateBoard(b.id);
+    });
+    tab.appendChild(dup);
+    if (boards.length > 1){
+      const del = document.createElement('span');
+      del.className = 'del';
+      del.textContent = '✕';
+      del.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteBoard(b.id);
+      });
+      tab.appendChild(del);
+    }
+    wrap.appendChild(tab);
+  });
+
+  const addTab = el('div', { class: 'floor-tab add' }, []);
+  addTab.textContent = '+ Floor';
+  addTab.addEventListener('click', addBoard);
+  wrap.appendChild(addTab);
+}
+
+function el(tag, attrs, children){
+  const node = document.createElement(tag);
+  if (attrs) Object.entries(attrs).forEach(([k,v]) => {
+    if (k === 'class') node.className = v;
+    else if (k.startsWith('on')) node.addEventListener(k.slice(2).toLowerCase(), v);
+    else node.setAttribute(k, v);
+  });
+  (children || []).forEach(c => node.appendChild(c));
+  return node;
+}
+
+function renderMeta(){
+  document.getElementById('meta-facility').value = state.facility;
+  document.getElementById('meta-zone').value = state.zone;
+  document.getElementById('meta-floor').value = state.floor;
+}
+
+function renderRooms(){
+  const list = document.getElementById('room-list');
+  list.innerHTML = '';
+  state.rooms.forEach((room, idx) => {
+    const labelInput = el('input', { type:'text', value: room.label, placeholder:'e.g. 401 or ISO' });
+    labelInput.addEventListener('input', () => { room.label = labelInput.value; renderReport(); scheduleSave(); });
+
+    const statusSelect = el('select', { class: room.status === 'vacant' ? 'vacant-status' : '' });
+    [['vacant','Vacant'], ['male','Male'], ['female','Female']].forEach(([val,text]) => {
+      const opt = el('option', { value: val }, []);
+      opt.textContent = text;
+      if (room.status === val) opt.selected = true;
+      statusSelect.appendChild(opt);
+    });
+    statusSelect.addEventListener('change', () => {
+      room.status = statusSelect.value;
+      statusSelect.classList.toggle('vacant-status', room.status === 'vacant');
+      if (room.status === 'vacant'){
+        room.tag = 'Vacant';
+      } else if (room.tag === 'Vacant'){
+        room.tag = '';
+      }
+      tagInput.value = room.tag || '';
+      tagInput.classList.toggle('tagged', !!room.tag);
+      tagWrap.classList.toggle('has-tag', !!room.tag);
+      renderReport(); renderStats(); scheduleSave();
+    });
+
+    const tagInput = el('select', {
+      class: 'tag-input' + (room.tag ? ' tagged' : '')
+    });
+    ROOM_TAGS.forEach(val => {
+      const opt = el('option', { value: val }, []);
+      opt.textContent = val || '— tag —';
+      if ((room.tag || '') === val) opt.selected = true;
+      tagInput.appendChild(opt);
+    });
+    const tagWrap = el('div', { class: 'tag-wrap' + (room.tag ? ' has-tag' : '') }, [tagInput]);
+    const tagClear = el('span', { class: 'tag-clear' }, []);
+    tagClear.textContent = '✕';
+    tagWrap.appendChild(tagClear);
+
+    const handleTagChange = () => {
+      room.tag = tagInput.value;
+      tagInput.classList.toggle('tagged', !!room.tag);
+      tagWrap.classList.toggle('has-tag', !!room.tag);
+      const tagLower = room.tag.trim().toLowerCase();
+      if (tagLower === 'vacant' && room.status !== 'vacant'){
+        room.status = 'vacant';
+        statusSelect.value = 'vacant';
+      }
+      renderReport(); renderStats(); scheduleSave();
+    };
+    tagInput.addEventListener('change', handleTagChange);
+    tagClear.addEventListener('click', () => {
+      tagInput.value = '';
+      handleTagChange();
+    });
+
+    const removeBtn = el('button', { class: 'remove-room', type:'button' }, []);
+    removeBtn.textContent = '✕';
+    removeBtn.addEventListener('click', () => {
+      const board = state; // the board this room belongs to, even if user switches floors before undo
+      const removedRoom = room;
+      const removedAt = idx;
+      board.rooms.splice(removedAt, 1);
+      renderRooms(); renderReport(); renderStats(); scheduleSave();
+
+      showUndoToast('Room "' + (removedRoom.label || '?') + '" deleted', () => {
+        const insertAt = Math.min(removedAt, board.rooms.length);
+        board.rooms.splice(insertAt, 0, removedRoom);
+        scheduleSave();
+        if (state === board){
+          renderRooms(); renderReport(); renderStats();
+        }
+      });
+    });
+
+    const row = el('div', { class: 'room-row' }, [labelInput, statusSelect, tagWrap, removeBtn]);
+    list.appendChild(row);
+  });
+}
+
+function renderStats(){
+  const occupied = state.rooms.filter(r => r.status !== 'vacant');
+  const male = state.rooms.filter(r => r.status === 'male').length;
+  const female = state.rooms.filter(r => r.status === 'female').length;
+  const vacant = state.rooms.filter(r => r.status === 'vacant').length;
+  document.getElementById('stat-total').textContent = occupied.length;
+  document.getElementById('stat-male').textContent = male;
+  document.getElementById('stat-female').textContent = female;
+  document.getElementById('stat-vacant').textContent = vacant;
+}
+
+function pad(str, len){
+  const dots = Math.max(3, len - str.length);
+  return str + ' ' + '.'.repeat(dots) + ' ';
+}
+
+function renderReport(){
+  const facility = (state.facility || '').trim().toUpperCase();
+  const zone = (state.zone || '').trim().toUpperCase();
+  const floor = (state.floor || '').trim().toUpperCase();
+
+  const occupied = state.rooms.filter(r => r.status !== 'vacant');
+  const male = state.rooms.filter(r => r.status === 'male').length;
+  const female = state.rooms.filter(r => r.status === 'female').length;
+  const vacant = state.rooms.filter(r => r.status === 'vacant').length;
+
+  const divider = '─'.repeat(20);
+
+  const TAG_ICONS = {
+    'vip': '⭐',
+    'vvip': '👑',
+    'transfer': '🔄',
+    'mission': '🎯',
+    'out on pass': '🚪'
+  };
+
+  const roomLabels = state.rooms.map(r => (r.label || '?').toUpperCase());
+  const maxLen = Math.max(...roomLabels.map(l => l.length), 3);
+
+  const roomLines = state.rooms.map((r, i) => {
+    const base = r.status === 'vacant' ? 'Vacant' : STATUS_LABELS[r.status];
+    const showTag = r.tag && !(r.status === 'vacant' && r.tag === 'Vacant');
+    const icon = showTag ? (TAG_ICONS[r.tag.trim().toLowerCase()] || '') : '';
+    const code = base + (showTag ? '  ' + icon + ' ' + r.tag.toUpperCase() : '');
+    return pad(roomLabels[i], maxLen + 2) + code;
+  });
+
+  const headerLine2 = [facility, zone, floor].filter(Boolean).join(' | ');
+  const now = new Date();
+  const stamp = now.toLocaleString([], { dateStyle:'medium', timeStyle:'short' });
+
+  const lines = [
+    '🏥 *PATIENT STATUS REPORT*',
+    '📍 ' + headerLine2,
+    '🕒 ' + stamp,
+    divider,
+    '📊 *SUMMARY*',
+    divider,
+    '*Total Patients:* ' + occupied.length,
+    '*Male:* ' + male + '   *Female:* ' + female,
+    '*Occupied:* ' + occupied.length + '   *Vacant:* ' + vacant,
+    divider,
+    '🛏️ *ROOM STATUS*',
+    divider,
+    ...roomLines,
+    divider
+  ];
+
+  document.getElementById('report-box').textContent = lines.join('\n');
+  document.getElementById('report-ts').textContent = 'Updated ' + stamp;
+}
+
+// --- Meta field listeners ---
+function wireStaticControls(){
+  ['meta-facility','meta-zone','meta-floor'].forEach(id => {
+    document.getElementById(id).addEventListener('input', (e) => {
+      const key = id.replace('meta-', '');
+      state[key] = e.target.value;
+      renderReport();
+      renderFloorTabs();
+      scheduleSave();
+    });
+  });
+
+  document.getElementById('add-room-btn').addEventListener('click', () => {
+    state.rooms.push({ label: '', status: 'vacant', tag: '' });
+    renderRooms();
+    renderReport();
+    renderStats();
+    scheduleSave();
+    const inputs = document.querySelectorAll('#room-list input[type=text]');
+    if (inputs.length) inputs[inputs.length - 1].focus();
+  });
+}
+
+// --- Copy ---
+function copyReportWith(btn, idleLabel, copiedLabel){
+  const text = document.getElementById('report-box').textContent;
+  const showCopied = () => {
+    btn.textContent = copiedLabel;
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = idleLabel; btn.classList.remove('copied'); }, 1500);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(showCopied).catch(() => fallbackCopy(text, showCopied));
+  } else {
+    fallbackCopy(text, showCopied);
+  }
+}
+
+document.getElementById('copy-btn').addEventListener('click', (e) => {
+  copyReportWith(e.currentTarget, 'Copy', 'Copied');
+});
+document.getElementById('copy-btn-lg').addEventListener('click', (e) => {
+  copyReportWith(e.currentTarget, '📋 Copy report', '✓ Copied');
+});
+
+function fallbackCopy(text, onSuccess){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try { document.execCommand('copy'); onSuccess(); } catch (e) {}
+  document.body.removeChild(ta);
+}
+
+// --- WhatsApp send ---
+document.getElementById('wa-send').addEventListener('click', () => {
+  const text = document.getElementById('report-box').textContent.trim();
+  if (!text) return;
+  const rawNumber = document.getElementById('wa-number').value.trim();
+  const digits = rawNumber.replace(/[^\d]/g, '');
+  const base = digits ? `https://wa.me/${digits}` : 'https://wa.me/';
+  window.open(`${base}?text=${encodeURIComponent(text)}`, '_blank');
+});
+
+// --- Export to Excel (printable) ---
+// Builds a real .xls file (HTML-table format Excel/Sheets can open) fully
+// offline, no libraries — works even with zero internet connection.
+function escapeHtml(str){
+  return String(str || '').replace(/[&<>"']/g, (c) => (
+    { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]
+  ));
+}
+
+document.getElementById('excel-btn').addEventListener('click', () => {
+  const facility = (state.facility || '').trim();
+  const zone = (state.zone || '').trim();
+  const floor = (state.floor || '').trim();
+  const headerLabel = [facility, zone, floor].filter(Boolean).join(' | ') || 'PATIENT STATUS';
+
+  const occupied = state.rooms.filter(r => r.status !== 'vacant');
+  const male = state.rooms.filter(r => r.status === 'male').length;
+  const female = state.rooms.filter(r => r.status === 'female').length;
+  const vacant = state.rooms.filter(r => r.status === 'vacant').length;
+  const statusText = { vacant: 'Vacant', male: 'Male', female: 'Female' };
+
+  const roomRows = state.rooms.map(r => {
+    const isVacant = r.status === 'vacant';
+    const rowStyle = isVacant ? ' style="background:#fbeae6;"' : '';
+    return `
+    <tr${rowStyle}>
+      <td style="text-align:center;font-weight:bold;">${escapeHtml(r.label || '')}</td>
+      <td style="text-align:center;">${escapeHtml(statusText[r.status] || r.status)}</td>
+      <td style="text-align:center;">${escapeHtml(r.tag || '')}</td>
+    </tr>`;
+  }).join('');
+
+  const sheetName = (floor || zone || facility || 'Sheet1').replace(/[\[\]\*\/\\\?:]/g, '').slice(0, 31) || 'Sheet1';
+
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="UTF-8">
+<!--[if gte mso 9]><xml>
+<x:ExcelWorkbook>
+<x:ExcelWorksheets>
+<x:ExcelWorksheet>
+<x:Name>${escapeHtml(sheetName)}</x:Name>
+<x:WorksheetOptions>
+<x:DisplayGridlines/>
+<x:FitToPage/>
+<x:Print>
+<x:ValidPrinterInfo/>
+<x:PaperSizeIndex>9</x:PaperSizeIndex>
+<x:FitWidth>1</x:FitWidth>
+<x:FitHeight>0</x:FitHeight>
+<x:Scale>100</x:Scale>
+<x:HorizontalResolution>600</x:HorizontalResolution>
+<x:VerticalResolution>600</x:VerticalResolution>
+</x:Print>
+<x:PrintRowColHeaders/>
+<x:Selected/>
+<x:ProtectObjects>False</x:ProtectObjects>
+<x:ProtectScenarios>False</x:ProtectScenarios>
+</x:WorksheetOptions>
+</x:ExcelWorksheet>
+</x:ExcelWorksheets>
+</x:ExcelWorkbook>
+</xml><![endif]-->
+<style>
+  @page { size: A4 portrait; margin: 10mm; }
+  body{ font-family: Arial, Helvetica, sans-serif; color:#1D2329; }
+  table{ border-collapse: collapse; margin-bottom: 14px; width:100%; }
+  col.c1{ width:70px; }
+  col.c2{ width:100px; }
+  col.c3{ width:140px; }
+  th, td{ border: 1px solid #666; padding: 5px 10px; font-size: 12px; mso-number-format:"\\@"; }
+  th{ background:#14181C; color:#F2B705; text-align:center; font-weight:bold; }
+  .title{ font-size:17px; font-weight:bold; margin-bottom:2px; }
+  .meta{ font-size:11px; color:#444; margin-bottom:12px; }
+  .stat-table td:first-child{ font-weight:bold; background:#f2f2f2; width:150px; }
+  .stat-table td:last-child{ text-align:center; font-weight:bold; }
+  .section-hdr{ font-size:13px; font-weight:bold; background:#EDEAE1; padding:5px 10px; border:1px solid #666; }
+</style>
+</head>
+<body>
+  <table style="border:none; margin-bottom:6px;">
+    <tr style="border:none;"><td style="border:none; padding:0;">
+      <div class="title">🏥 PATIENT STATUS REPORT</div>
+      <div class="meta">${escapeHtml(headerLabel)} &nbsp;|&nbsp; Exported ${escapeHtml(new Date().toLocaleString())}</div>
+    </td></tr>
+  </table>
+
+  <table>
+    <col class="c1"><col class="c2">
+    <tr><td class="section-hdr" colspan="2">SUMMARY</td></tr>
+    <tr class="stat-table"><td>Total Patients</td><td>${occupied.length}</td></tr>
+    <tr class="stat-table"><td>Male</td><td>${male}</td></tr>
+    <tr class="stat-table"><td>Female</td><td>${female}</td></tr>
+    <tr class="stat-table"><td>Occupied Rooms</td><td>${occupied.length}</td></tr>
+    <tr class="stat-table"><td>Vacant Rooms</td><td>${vacant}</td></tr>
+  </table>
+
+  <table>
+    <col class="c1"><col class="c2"><col class="c3">
+    <tr><td class="section-hdr" colspan="3">ROOM STATUS</td></tr>
+    <tr><th>Room</th><th>Status</th><th>Tag</th></tr>
+    ${roomRows}
+  </table>
+</body>
+</html>`;
+
+  const blob = new Blob(['\ufeff' + html], { type: 'application/octet-stream' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0, 10);
+  const safeName = (floor || zone || facility || 'floor').replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-') || 'floor';
+  a.href = url;
+  a.download = `patient-status-${safeName}-${stamp}.xls`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+});
+
+
+
+// --- Backup: export / import (protects against localStorage being cleared) ---
+document.getElementById('export-btn').addEventListener('click', () => {
+  const payload = { app: 'patient-status', exportedAt: new Date().toISOString(), boards, activeId };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `patient-status-backup-${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('import-btn').addEventListener('click', () => {
+  document.getElementById('import-file').click();
+});
+
+document.getElementById('import-file').addEventListener('change', (e) => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    let payload;
+    try {
+      payload = JSON.parse(reader.result);
+    } catch (err) {
+      alert("Couldn't read that file — it doesn't look like a valid backup.");
+      return;
+    }
+    if (!payload || !Array.isArray(payload.boards) || !payload.boards.length){
+      alert("That file doesn't contain any floor data.");
+      return;
+    }
+    const ok = confirm(
+      `Import "${file.name}"?\n\nThis replaces everything currently on this device with the ${payload.boards.length} floor(s) from the backup. This can't be undone.`
+    );
+    if (!ok) return;
+
+    boards = payload.boards;
+    activeId = (payload.activeId && boards.some(b => b.id === payload.activeId)) ? payload.activeId : boards[0].id;
+    state = boards.find(b => b.id === activeId);
+    persistNow();
+    renderFloorTabs();
+    renderMeta();
+    renderRooms();
+    renderStats();
+    renderReport();
+  };
+  reader.readAsText(file);
+});
+
+// --- Init ---
+(function init(){
+  loadState();
+  renderFloorTabs();
+  renderMeta();
+  renderRooms();
+  renderStats();
+  renderReport();
+  wireStaticControls();
+})();
+
+// --- Keyboard-aware compact mode ---
+// Shrinks/hides header, meta fields and stat boxes while the on-screen
+// keyboard is open, so the room list stays visible while typing.
+(function setupKeyboardCompactMode(){
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const THRESHOLD = 120; // px shrink that counts as "keyboard open"
+  let baseline = vv.height;
+
+  function onResize(){
+    // Track the largest height seen while no keyboard is open, so
+    // orientation changes / browser chrome changes don't false-trigger.
+    if (vv.height > baseline) baseline = vv.height;
+    const shrink = baseline - vv.height;
+    const isOpen = shrink > THRESHOLD;
+    document.body.classList.toggle('keyboard-open', isOpen);
+    if (isOpen) {
+      const active = document.activeElement;
+      if (active && (active.tagName === 'INPUT' || active.tagName === 'SELECT' || active.tagName === 'TEXTAREA')) {
+        setTimeout(() => active.scrollIntoView({ block: 'center', behavior: 'smooth' }), 60);
+      }
+    }
+  }
+  vv.addEventListener('resize', onResize);
+  vv.addEventListener('scroll', onResize);
+})();
+</script>
+</body>
+</html>
